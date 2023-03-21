@@ -4,7 +4,7 @@
  * @Autor: jiangzhikun
  * @Date: 2023-03-17 13:55:31
  * @LastEditors: jiangzhikun
- * @LastEditTime: 2023-03-21 16:20:07
+ * @LastEditTime: 2023-03-21 17:01:56
  */
 // 引入控制器
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -24,7 +24,7 @@ export default class LoadScene {
 
     control: any // 控制器
 
-    raycaster: any // 
+    raycaster: any // 光线投射 光线投射用于进行鼠标拾取（在三维空间中计算出鼠标移过了什么物体）
 
     cb: Function | undefined
 
@@ -64,35 +64,16 @@ export default class LoadScene {
         'images/skybox/CloudySky/negz.jpg']);
         // 添加环境背景
         this.scene.background = cubeTexture;
-        // 设置所有物体的环境贴图
-        // this.scene.environment = cubeTexture;
-
-        // 添加一组环境光
-        // const light = new window.THREE.AmbientLight('#FF4500', 0.2);
-        // this.scene.add(light);
-
-        // 添加一组平行光
-        // const directionalLight = new window.THREE.DirectionalLight('#FF4500', 0.8);
-        // this.scene.add(directionalLight);
-
-        // 添加一个点光源
-        // const pointLight = new window.THREE.PointLight('#FF4500', 1, 1000);
-        // pointLight.position.set(800,110,0);
-        // this.scene.add(pointLight);
 
         this.initCamera();
         this.initRender();
         this.initControl();
         this.render();
         this.createBox();
-        // this.createHome();
         this.createShowBox();
         this.watchViewsChange();
-
-        // 添加坐标轴辅助器
-        // const axesHelper = new window.THREE.AxesHelper(5);
-        // this.scene.add(axesHelper);
-
+        
+        // 初始化光线投射实例
         this.raycaster = new window.THREE.Raycaster();
         // 绑定点击事件
         this.sceneDom?.addEventListener('mousedown', this.handleSceneClick.bind(this), false);
@@ -174,23 +155,8 @@ export default class LoadScene {
      * @memberof LoadScene
      */
     createBox() {
-        // 导入纹理
-        // const textureLoader = new window.THREE.TextureLoader();
-        // 加载纹理图
-        // const jsColorTexture = textureLoader.load('/jswl.jpg');
-        // // 设置贴图重复
-        // jsColorTexture.repeat.set(1,1);
-
         // 创建几何体
-        // const geometry = new window.THREE.BoxGeometry( 1, 1, 1 );
         const geometry = new window.THREE.SphereGeometry(1, 20, 20);
-        // 创建材质
-        // const material = new window.THREE.MeshBasicMaterial( {
-        //     color: '#fff', // 颜色
-        //     map: jsColorTexture, // 贴图
-        //     transparent: true,
-        //     opacity: 0.7
-        // } );
         // 标准网格材质
         const material = new window.THREE.MeshStandardMaterial({
             metalness: 0.7, // 金属度
@@ -205,8 +171,6 @@ export default class LoadScene {
         this.camera.position.z = 6.3;
         this.camera.position.x = -7.4;
         this.camera.position.y = 6.8;
-        // gsap.to(cube.position, { x: 5, duration: 5 , ease: 'power1.inOut', repeat: 2, yoyo: true, onStart: () => { console.log('jzk 动画开始'); }, onComplete: () => { console.log('jzk 动画完成'); } });
-        // gsap.to(cube.rotation, { x: 1 * Math.PI, duration: 5, delay: 5, ease: 'power1.inOut', repeat: 2, });
     }
 
     // 创建阴影物体（受阴影影响）
@@ -262,43 +226,12 @@ export default class LoadScene {
         this.renderer.shadowMap.enabled = true;
     }
 
-    // ar看房功能
-    createHome() {
-        // 盒子
-        const homeGeoCube = new window.THREE.BoxGeometry(1,1,1);
-        // 材质
-        const paths = [
-        'images/skybox/home/posx.jpg',
-        'images/skybox/home/negx.jpg',
-        'images/skybox/home/posy.jpg',
-        'images/skybox/home/negy.jpg',
-        'images/skybox/home/posz.jpg',
-        'images/skybox/home/negz.jpg'
-        ];
-        const materials = paths.map((item: string, index: number) => {
-            const texture = new window.THREE.TextureLoader().load(item);
-            if (index === 2) {
-                texture.rotation = -Math.PI / 2;
-                texture.center = new window.THREE.Vector2(0.5,0.5);
-                return new window.THREE.MeshBasicMaterial({ map: texture })
-            }else if (index === 3) {
-                texture.rotation = Math.PI / 2;
-                texture.center = new window.THREE.Vector2(0.5,0.5);
-                return new window.THREE.MeshBasicMaterial({ map: texture })
-            } else {
-                return new window.THREE.MeshBasicMaterial({ map: texture })
-            }
-        });
-
-        const cube = new window.THREE.Mesh(homeGeoCube, materials);
-        cube.geometry.scale(1,1,-1);
-
-        this.scene.add(cube);
-        
-        this.camera.position.z = 0.1;
-    }
-
-    // 封装飞行方法 飞到目标位置
+    /**
+     * @description 封装飞行方法 飞到目标位置
+     * @param {*} object3D 物体对象 Mesh object
+     * @return {*} 
+     * @memberof LoadScene
+     */
     flyTo(object3D: any) {
         if (!object3D) return;
         // 开始飞行时禁用缩放、平移、旋转
@@ -318,15 +251,21 @@ export default class LoadScene {
             this.control.enableRotate = true;
         } });
     }
-
-    // 场景点击事件处理函数
+    
+    /**
+     * @description 封装的场景点击事件处理函数
+     * @param {*} e
+     * @return {*} 
+     * @memberof LoadScene
+     */
     handleSceneClick(e: any) {
         e.preventDefault();
         if (!this.sceneDom) return;
         // 将鼠标点击位置的屏幕坐标转换成threejs中的标准坐标
+        const sceneDom = this.sceneDom; // 场景容器dom
         const mouse = {
-            x: ((e.clientX - this.sceneDom.getBoundingClientRect().left) / this.sceneDom.offsetWidth) * 2 - 1,
-            y: -((e.clientY - this.sceneDom.getBoundingClientRect().top) / this.sceneDom.offsetHeight) * 2 + 1
+            x: ((e.clientX - sceneDom.getBoundingClientRect().left) / sceneDom.offsetWidth) * 2 - 1,
+            y: -((e.clientY - sceneDom.getBoundingClientRect().top) / sceneDom.offsetHeight) * 2 + 1
         };
         // 通过鼠标的位置和当前相机的矩阵计算出raycaster
         this.raycaster.setFromCamera( mouse, this.camera );
@@ -334,7 +273,6 @@ export default class LoadScene {
         const allThings = this.scene.children.filter((item: any) => item.twinType === 'Thing');
         const intersects = this.raycaster.intersectObjects( allThings );
         if (intersects.length === 0) return;
-        console.log('jzk allThings', intersects[0]);
         const object3D = intersects[0].object;
         // 调用飞行方法
         this.flyTo(object3D);
