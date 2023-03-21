@@ -4,7 +4,7 @@
  * @Autor: jiangzhikun
  * @Date: 2023-03-17 13:55:31
  * @LastEditors: jiangzhikun
- * @LastEditTime: 2023-03-21 17:01:56
+ * @LastEditTime: 2023-03-21 17:58:44
  */
 // 引入控制器
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -24,7 +24,11 @@ export default class LoadScene {
 
     control: any // 控制器
 
-    raycaster: any // 光线投射 光线投射用于进行鼠标拾取（在三维空间中计算出鼠标移过了什么物体）
+    raycaster: any // 光线投射 用于进行鼠标拾取（在三维空间中计算出鼠标移过了什么物体）
+
+    clickThing: any // 点击的物体
+    
+    cameraOriginPos: any // 相机初始位置
 
     cb: Function | undefined
 
@@ -75,8 +79,12 @@ export default class LoadScene {
         
         // 初始化光线投射实例
         this.raycaster = new window.THREE.Raycaster();
-        // 绑定点击事件
-        this.sceneDom?.addEventListener('mousedown', this.handleSceneClick.bind(this), false);
+        
+        // 初始化点击事件
+        this.initThingClickEvent();
+
+        // 初始化鼠标移入事件
+        this.initThingMouseEvent();
         
         // 执行回调
         setTimeout(() => {
@@ -227,6 +235,29 @@ export default class LoadScene {
     }
 
     /**
+     * @description 初始化鼠标移入移出事件封装
+     * @memberof LoadScene
+     */
+    initThingMouseEvent() {
+        this.sceneDom?.addEventListener('mousemove', this.handleThingMouseEnter.bind(this), false);
+    }
+
+    /**
+     * @description 初始化物体点击事件封装
+     * @memberof LoadScene
+     */
+    initThingClickEvent() {
+        // 绑定点击事件
+        this.sceneDom?.addEventListener('mousedown', this.handleSceneClick.bind(this), false);
+        // 绑定鼠标抬起事件 鼠标抬起时则为
+        this.sceneDom?.addEventListener('mouseup', this.handleMouseUpClick.bind(this), false);
+        // 初始化点击的物体
+        this.clickThing = null;
+        // 初始相机初始数据
+        this.cameraOriginPos = null;
+    }
+
+    /**
      * @description 封装飞行方法 飞到目标位置
      * @param {*} object3D 物体对象 Mesh object
      * @return {*} 
@@ -251,6 +282,48 @@ export default class LoadScene {
             this.control.enableRotate = true;
         } });
     }
+
+    /**
+     * @description 获取屏幕坐标与<光线投射>相交的物体
+     * @param {*} clientX 屏幕坐标X
+     * @param {*} clientY 屏幕坐标Y
+     * @return {*} 
+     * @memberof LoadScene
+     */
+    getIntersectsThings(clientX: any, clientY: any) {
+        // 将鼠标点击位置的屏幕坐标转换成threejs中的标准坐标
+        if (!this.sceneDom) return;
+        const sceneDom = this.sceneDom; // 场景容器dom
+        const mouse = {
+            x: ((clientX - sceneDom.getBoundingClientRect().left) / sceneDom.offsetWidth) * 2 - 1,
+            y: -((clientY - sceneDom.getBoundingClientRect().top) / sceneDom.offsetHeight) * 2 + 1
+        };
+        // 通过鼠标的位置和当前相机的矩阵计算出raycaster
+        this.raycaster.setFromCamera( mouse, this.camera );
+        // 获取raycaster直线和所有模型相交的数组集合
+        const allThings = this.scene.children.filter((item: any) => item.twinType === 'Thing');
+        const intersects = this.raycaster.intersectObjects( allThings );
+        return intersects;
+    }
+
+    /**
+     * @description 封装的场景物体移入事件处理函数
+     * @param {*} e
+     * @memberof LoadScene
+     */
+    handleThingMouseEnter(e: any) {
+        e.preventDefault();
+        // 鼠标移入到物体鼠标变手
+        const intersects = this.getIntersectsThings(e.clientX, e.clientY);
+        if (intersects.length === 0) {
+            document.body.style.cursor = 'default';
+            return;
+        };
+        const object3D = intersects[0].object;
+        if (object3D.twinType === 'Thing') {
+            document.body.style.cursor = 'pointer';
+        }
+    }
     
     /**
      * @description 封装的场景点击事件处理函数
@@ -260,22 +333,29 @@ export default class LoadScene {
      */
     handleSceneClick(e: any) {
         e.preventDefault();
-        if (!this.sceneDom) return;
-        // 将鼠标点击位置的屏幕坐标转换成threejs中的标准坐标
-        const sceneDom = this.sceneDom; // 场景容器dom
-        const mouse = {
-            x: ((e.clientX - sceneDom.getBoundingClientRect().left) / sceneDom.offsetWidth) * 2 - 1,
-            y: -((e.clientY - sceneDom.getBoundingClientRect().top) / sceneDom.offsetHeight) * 2 + 1
-        };
-        // 通过鼠标的位置和当前相机的矩阵计算出raycaster
-        this.raycaster.setFromCamera( mouse, this.camera );
-        // 获取raycaster直线和所有模型相交的数组集合
-        const allThings = this.scene.children.filter((item: any) => item.twinType === 'Thing');
-        const intersects = this.raycaster.intersectObjects( allThings );
+        const intersects = this.getIntersectsThings(e.clientX, e.clientY);
         if (intersects.length === 0) return;
+        // 记录相机的初始位置
+        const { x, y, z } = this.camera.position;
+        this.cameraOriginPos = { x, y, z };
         const object3D = intersects[0].object;
-        // 调用飞行方法
-        this.flyTo(object3D);
+        // 储存点击的物体实例
+        this.clickThing = object3D;
+    }
+
+    /**
+     * @description 处理鼠标抬起事件
+     * @memberof LoadScene
+     */
+    handleMouseUpClick(e: any) {
+        if (!this.clickThing) return;
+        const originPos = this.cameraOriginPos;
+        const { x, y, z } = this.camera.position;
+        // 判断鼠标抬起时和点击时的相机位置信息，一致则没有移动
+        if (originPos.x.toFixed(0) === x.toFixed(0) && originPos.y.toFixed(0) === y.toFixed(0) && originPos.z.toFixed(0) === z.toFixed(0)) {
+            this.flyTo(this.clickThing);
+        }
+        this.clickThing = null;
     }
 
     /**
