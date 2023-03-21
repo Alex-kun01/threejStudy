@@ -4,7 +4,7 @@
  * @Autor: jiangzhikun
  * @Date: 2023-03-17 13:55:31
  * @LastEditors: jiangzhikun
- * @LastEditTime: 2023-03-21 16:20:07
+ * @LastEditTime: 2023-03-21 17:07:46
  */
 // 引入控制器
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -52,46 +52,12 @@ export default class LoadScene {
      */
     init() {
         this.scene = new window.THREE.Scene();
-        // 添加天空盒
-        // 创建一个正方形贴图加载器
-        const cubeTextureLoader = new window.THREE.CubeTextureLoader();
-        const cubeTexture = cubeTextureLoader.load([
-        'images/skybox/CloudySky/posx.jpg',
-        'images/skybox/CloudySky/negx.jpg',
-        'images/skybox/CloudySky/posy.jpg',
-        'images/skybox/CloudySky/negy.jpg',
-        'images/skybox/CloudySky/posz.jpg',
-        'images/skybox/CloudySky/negz.jpg']);
-        // 添加环境背景
-        this.scene.background = cubeTexture;
-        // 设置所有物体的环境贴图
-        // this.scene.environment = cubeTexture;
-
-        // 添加一组环境光
-        // const light = new window.THREE.AmbientLight('#FF4500', 0.2);
-        // this.scene.add(light);
-
-        // 添加一组平行光
-        // const directionalLight = new window.THREE.DirectionalLight('#FF4500', 0.8);
-        // this.scene.add(directionalLight);
-
-        // 添加一个点光源
-        // const pointLight = new window.THREE.PointLight('#FF4500', 1, 1000);
-        // pointLight.position.set(800,110,0);
-        // this.scene.add(pointLight);
-
         this.initCamera();
         this.initRender();
         this.initControl();
         this.render();
-        this.createBox();
-        // this.createHome();
-        this.createShowBox();
+        this.createHome();
         this.watchViewsChange();
-
-        // 添加坐标轴辅助器
-        // const axesHelper = new window.THREE.AxesHelper(5);
-        // this.scene.add(axesHelper);
 
         this.raycaster = new window.THREE.Raycaster();
         // 绑定点击事件
@@ -169,111 +135,22 @@ export default class LoadScene {
         });
     }
 
+    
     /**
-     * @description 创建几何体
+     * @description AI看房功能
      * @memberof LoadScene
      */
-    createBox() {
-        // 导入纹理
-        // const textureLoader = new window.THREE.TextureLoader();
-        // 加载纹理图
-        // const jsColorTexture = textureLoader.load('/jswl.jpg');
-        // // 设置贴图重复
-        // jsColorTexture.repeat.set(1,1);
-
-        // 创建几何体
-        // const geometry = new window.THREE.BoxGeometry( 1, 1, 1 );
-        const geometry = new window.THREE.SphereGeometry(1, 20, 20);
-        // 创建材质
-        // const material = new window.THREE.MeshBasicMaterial( {
-        //     color: '#fff', // 颜色
-        //     map: jsColorTexture, // 贴图
-        //     transparent: true,
-        //     opacity: 0.7
-        // } );
-        // 标准网格材质
-        const material = new window.THREE.MeshStandardMaterial({
-            metalness: 0.7, // 金属度
-            roughness: 0.1, // 反射度
-        });
-        // 根据几何体和材质创建物体
-        const cube = new window.THREE.Mesh( geometry, material );
-        cube.name = '光滑的圆';
-        cube.twinType = 'Thing';
-
-        this.scene.add(cube);
-        this.camera.position.z = 6.3;
-        this.camera.position.x = -7.4;
-        this.camera.position.y = 6.8;
-        // gsap.to(cube.position, { x: 5, duration: 5 , ease: 'power1.inOut', repeat: 2, yoyo: true, onStart: () => { console.log('jzk 动画开始'); }, onComplete: () => { console.log('jzk 动画完成'); } });
-        // gsap.to(cube.rotation, { x: 1 * Math.PI, duration: 5, delay: 5, ease: 'power1.inOut', repeat: 2, });
-    }
-
-    // 创建阴影物体（受阴影影响）
-    createShowBox() {
-        // 目标：阴影的属性 满足如下所有条件才生效
-        // 灯光阴影
-        // 1、材质要满足能够对光照有反应
-        // 2、设置渲染器开启阴影的计算 renderer.shadowMap.enabled = true
-        // 3、设置光照投射阴影 light.castShadow = true
-        // 4、设置物体投射阴影 object3D.castShadow = true
-        // 5、设置物体接收阴影 area.receiveShadow = true
-
-        // 材质
-        const defaultMater = new window.THREE.MeshStandardMaterial( {color: 0xffffff } );
-        const noneLightMater = new window.THREE.MeshBasicMaterial( {color: 0xff0000 } );
-
-        // 先创建一个面 用于接收阴影
-        const geoArea = new window.THREE.BoxGeometry(50,50,1);
-        const plane = new window.THREE.Mesh( geoArea, defaultMater );
-        plane.rotation.set(Math.PI / 2, 0, 0);
-        plane.position.y = -1;
-        plane.name = '面';
-        plane.receiveShadow = true;
-        this.scene.add( plane );
-
-        // 创建一个正方体
-        const geoCube = new window.THREE.BoxGeometry(1,1,1);
-        const cube = new window.THREE.Mesh(geoCube, defaultMater);
-        cube.name = '正方体';
-        cube.twinType = 'Thing';
-        cube.position.set(3,0,3);
-        cube.receiveShadow = true;
-        cube.castShadow = true;
-        this.scene.add(cube);
-
-        // 创建一个聚光灯
-        const spotLight = new window.THREE.SpotLight( 0xffffff, 1, 80, Math.PI/10, 0.5, 0.9 );
-        spotLight.position.set( 10, 10, 10 );
-        spotLight.shadow.radius = 8;
-        spotLight.castShadow = true;
-        this.scene.add(spotLight);
-
-        // 创建一个点光源
-        const geoPoint = new window.THREE.SphereGeometry(0.05,20,20);
-        const pointLight = new window.THREE.PointLight( 0xff0000, 0.3, 15 );
-        const modelPointLight = new window.THREE.Mesh(geoPoint, noneLightMater);
-        modelPointLight.add(pointLight);
-        modelPointLight.position.set(3,1,1);
-        modelPointLight.name = '点光源小球';
-        modelPointLight.twinType = 'Thing';
-        this.scene.add(modelPointLight);
-
-        this.renderer.shadowMap.enabled = true;
-    }
-
-    // ar看房功能
     createHome() {
         // 盒子
         const homeGeoCube = new window.THREE.BoxGeometry(1,1,1);
         // 材质
         const paths = [
-        'images/skybox/home/posx.jpg',
-        'images/skybox/home/negx.jpg',
-        'images/skybox/home/posy.jpg',
-        'images/skybox/home/negy.jpg',
-        'images/skybox/home/posz.jpg',
-        'images/skybox/home/negz.jpg'
+            'images/skybox/home/posx.jpg',
+            'images/skybox/home/negx.jpg',
+            'images/skybox/home/posy.jpg',
+            'images/skybox/home/negy.jpg',
+            'images/skybox/home/posz.jpg',
+            'images/skybox/home/negz.jpg'
         ];
         const materials = paths.map((item: string, index: number) => {
             const texture = new window.THREE.TextureLoader().load(item);
@@ -334,7 +211,6 @@ export default class LoadScene {
         const allThings = this.scene.children.filter((item: any) => item.twinType === 'Thing');
         const intersects = this.raycaster.intersectObjects( allThings );
         if (intersects.length === 0) return;
-        console.log('jzk allThings', intersects[0]);
         const object3D = intersects[0].object;
         // 调用飞行方法
         this.flyTo(object3D);
