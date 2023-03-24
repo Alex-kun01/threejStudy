@@ -4,7 +4,7 @@
  * @Autor: jiangzhikun
  * @Date: 2023-03-17 13:50:34
  * @LastEditors: jiangzhikun
- * @LastEditTime: 2023-03-17 16:16:28
+ * @LastEditTime: 2023-03-24 11:08:24
 -->
 <template>
     <div class="scene-container">
@@ -45,6 +45,9 @@ export default {
     #three3d {
         width: 100%;
         height: 100%;
+        position: absolute;
+        top: 0;
+        z-index: 4;
     }
 }
 </style>

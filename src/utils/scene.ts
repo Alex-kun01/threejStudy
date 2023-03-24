@@ -4,10 +4,12 @@
  * @Autor: jiangzhikun
  * @Date: 2023-03-17 13:55:31
  * @LastEditors: jiangzhikun
- * @LastEditTime: 2023-03-21 17:58:44
+ * @LastEditTime: 2023-03-24 16:09:24
  */
 // 引入控制器
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { CSS3DObject, CSS3DRenderer } from '../assets/js/CSS3DRenderer';
+import { TrackballControls } from '../assets/js/TrackballControls';
 // 动画库
 import gsap from 'gsap';
 
@@ -18,9 +20,13 @@ export default class LoadScene {
 
     scene: any // 场景
 
+    cssScene: any // css场景
+
     camera: any // 相机
 
     renderer: any // 渲染器
+
+    cssRenderer: any // css渲染器
 
     control: any // 控制器
 
@@ -41,8 +47,10 @@ export default class LoadScene {
         this.containerId = containerId;
         this.sceneDom = null;
         this.scene = null;
+        this.cssScene = null;
         this.camera = null;
         this.renderer = null;
+        this.cssRenderer = null;
         this.control = null;
         this.raycaster = null;
         this.cb = cb;
@@ -56,18 +64,23 @@ export default class LoadScene {
      */
     init() {
         this.scene = new window.THREE.Scene();
+        // 初始化css场景
+        this.cssScene = new window.THREE.Scene();
         // 添加天空盒
         // 创建一个正方形贴图加载器
         const cubeTextureLoader = new window.THREE.CubeTextureLoader();
         const cubeTexture = cubeTextureLoader.load([
-        'images/skybox/CloudySky/posx.jpg',
-        'images/skybox/CloudySky/negx.jpg',
-        'images/skybox/CloudySky/posy.jpg',
-        'images/skybox/CloudySky/negy.jpg',
-        'images/skybox/CloudySky/posz.jpg',
-        'images/skybox/CloudySky/negz.jpg']);
+        'images/skybox/Grassland/posx.jpg',
+        'images/skybox/Grassland/negx.jpg',
+        'images/skybox/Grassland/posy.jpg',
+        'images/skybox/Grassland/negy.jpg',
+        'images/skybox/Grassland/posz.jpg',
+        'images/skybox/Grassland/negz.jpg']);
         // 添加环境背景
         this.scene.background = cubeTexture;
+
+        const light = new window.THREE.AmbientLight( 0x404040 );
+        this.scene.add( light );
 
         this.initCamera();
         this.initRender();
@@ -75,7 +88,11 @@ export default class LoadScene {
         this.render();
         this.createBox();
         this.createShowBox();
+        this.camera.position.z = 50;
+        this.camera.position.x = 100;
+        this.camera.position.y = 100;
         this.watchViewsChange();
+        this.createPanel();
         
         // 初始化光线投射实例
         this.raycaster = new window.THREE.Raycaster();
@@ -113,11 +130,24 @@ export default class LoadScene {
         const containerDom = document.getElementById(this.containerId);
         this.sceneDom = containerDom;
         // 创建渲染器
-        this.renderer = new window.THREE.WebGLRenderer();
-        // 设置渲染器大小
+        this.renderer = new window.THREE.WebGLRenderer({ alpha: true });
+        this.renderer.setClearColor(0x000000, 0); // required 
+        this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.domElement.style.position = 'absolute';
+        this.renderer.domElement.style.top = 0;
+        this.renderer.domElement.style.zIndex = 1;
         // 将渲染器添加到指定容器中
         containerDom?.appendChild(this.renderer.domElement);
+
+        // css渲染器
+        this.cssRenderer = new CSS3DRenderer();
+        this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.cssRenderer.domElement.style.position = 'absolute';
+        this.cssRenderer.domElement.style.top = 0;
+        this.cssRenderer.domElement.style.zIndex = 2;
+        this.cssRenderer.domElement.style.pointerEvents = 'none';
+        containerDom?.appendChild(this.cssRenderer.domElement);
     }
 
     /**
@@ -126,6 +156,7 @@ export default class LoadScene {
      */
     initControl() {
         this.control = new OrbitControls(this.camera, this.renderer.domElement);
+        // this.control = new TrackballControls(this.camera, this.renderer.domElement);
         // 设置控制器阻尼 开启后需要在渲染器中设置update
         this.control.enableDamping = true;
     }
@@ -137,7 +168,9 @@ export default class LoadScene {
     render() {
         // 使用渲染器，通过相机将场景渲染出来
         this.control.update();
+        // 主场景
         this.renderer.render(this.scene, this.camera);
+        this.cssRenderer.render(this.cssScene, this.camera);
         requestAnimationFrame(this.render.bind(this));
     }
 
@@ -155,6 +188,9 @@ export default class LoadScene {
             this.renderer.setSize(window.innerWidth, window.innerHeight)
             // 设置渲染器像素比
             this.renderer.setPixelRatio(window.devicePixelRatio);
+            
+            this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+            this.cssRenderer.setPixelRatio(window.devicePixelRatio);
         });
     }
 
@@ -164,7 +200,7 @@ export default class LoadScene {
      */
     createBox() {
         // 创建几何体
-        const geometry = new window.THREE.SphereGeometry(1, 20, 20);
+        const geometry = new window.THREE.SphereGeometry(10, 20, 20);
         // 标准网格材质
         const material = new window.THREE.MeshStandardMaterial({
             metalness: 0.7, // 金属度
@@ -174,11 +210,12 @@ export default class LoadScene {
         const cube = new window.THREE.Mesh( geometry, material );
         cube.name = '光滑的圆';
         cube.twinType = 'Thing';
+        cube.position.set(-10, 10, 0)
 
         this.scene.add(cube);
-        this.camera.position.z = 6.3;
-        this.camera.position.x = -7.4;
-        this.camera.position.y = 6.8;
+        // this.camera.position.z = 6.3;
+        // this.camera.position.x = -7.4;
+        // this.camera.position.y = 6.8;
     }
 
     // 创建阴影物体（受阴影影响）
@@ -196,7 +233,7 @@ export default class LoadScene {
         const noneLightMater = new window.THREE.MeshBasicMaterial( {color: 0xff0000 } );
 
         // 先创建一个面 用于接收阴影
-        const geoArea = new window.THREE.BoxGeometry(50,50,1);
+        const geoArea = new window.THREE.BoxGeometry(2000,2000,1);
         const plane = new window.THREE.Mesh( geoArea, defaultMater );
         plane.rotation.set(Math.PI / 2, 0, 0);
         plane.position.y = -1;
@@ -205,28 +242,28 @@ export default class LoadScene {
         this.scene.add( plane );
 
         // 创建一个正方体
-        const geoCube = new window.THREE.BoxGeometry(1,1,1);
+        const geoCube = new window.THREE.BoxGeometry(10,10,10);
         const cube = new window.THREE.Mesh(geoCube, defaultMater);
         cube.name = '正方体';
         cube.twinType = 'Thing';
-        cube.position.set(3,0,3);
+        cube.position.set(50,10,3);
         cube.receiveShadow = true;
         cube.castShadow = true;
         this.scene.add(cube);
 
         // 创建一个聚光灯
-        const spotLight = new window.THREE.SpotLight( 0xffffff, 1, 80, Math.PI/10, 0.5, 0.9 );
-        spotLight.position.set( 10, 10, 10 );
+        const spotLight = new window.THREE.SpotLight( 0xffffff, 1, 1000, Math.PI/10, 0.5, 0.9 );
+        spotLight.position.set( 100, 100, 100 );
         spotLight.shadow.radius = 8;
         spotLight.castShadow = true;
         this.scene.add(spotLight);
 
         // 创建一个点光源
-        const geoPoint = new window.THREE.SphereGeometry(0.05,20,20);
+        const geoPoint = new window.THREE.SphereGeometry(0.5,20,20);
         const pointLight = new window.THREE.PointLight( 0xff0000, 0.3, 15 );
         const modelPointLight = new window.THREE.Mesh(geoPoint, noneLightMater);
         modelPointLight.add(pointLight);
-        modelPointLight.position.set(3,1,1);
+        modelPointLight.position.set(1,30,1);
         modelPointLight.name = '点光源小球';
         modelPointLight.twinType = 'Thing';
         this.scene.add(modelPointLight);
@@ -271,7 +308,7 @@ export default class LoadScene {
         this.control.enableRotate = false;
         const { position } = object3D;
         // 在原有position的基础上进行向量计算，得到偏45独角上方俯视角度
-        const target = { x: (position.x + 1) * 2, y: (position.y + 1) * 2, z: (position.z + 1) * 2 };
+        const target = { x: (position.x + 1) * 2, y: (position.y + 1) * 5, z: (position.z + 1) * 2 };
         // 动画库执行动画
         gsap.to(this.camera.position, { x: target.x, y: target.y, z: target.z, duration: 1, onComplete: () => {
             // 结束后重置目标位置
@@ -323,6 +360,37 @@ export default class LoadScene {
         if (object3D.twinType === 'Thing') {
             document.body.style.cursor = 'pointer';
         }
+    }
+
+
+    /**
+     * @description 创建面板
+     * @memberof LoadScene
+     */
+    createPanel() {
+        const htmlstr = `<div class="three_3d_panel">
+            <div class="title_panel">信息面板</div>
+            <div class="item_panel">
+                <div class="name">名称</div>
+                <div class="name">物体1</div>
+            </div>
+            <div class="item_panel">
+                <div class="name">编号</div>
+                <div class="name">x001</div>
+            </div>
+            <div class="item_panel">
+                <div class="name">类型</div>
+                <div class="name">twins</div>
+            </div>
+        </div>`;
+        const domstr = document.createElement('div');
+        domstr.innerHTML = htmlstr;
+
+        const objPanel = new CSS3DObject(domstr);
+        objPanel.position.set(1,60,1);
+
+        this.cssScene.add(objPanel);
+        // this.flyTo(objPanel)
     }
     
     /**
