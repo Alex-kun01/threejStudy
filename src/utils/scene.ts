@@ -4,12 +4,11 @@
  * @Autor: jiangzhikun
  * @Date: 2023-03-17 13:55:31
  * @LastEditors: jiangzhikun
- * @LastEditTime: 2023-03-24 16:09:24
+ * @LastEditTime: 2023-03-24 17:21:32
  */
 // 引入控制器
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { CSS3DObject, CSS3DRenderer } from '../assets/js/CSS3DRenderer';
-import { TrackballControls } from '../assets/js/TrackballControls';
 // 动画库
 import gsap from 'gsap';
 
@@ -156,7 +155,6 @@ export default class LoadScene {
      */
     initControl() {
         this.control = new OrbitControls(this.camera, this.renderer.domElement);
-        // this.control = new TrackballControls(this.camera, this.renderer.domElement);
         // 设置控制器阻尼 开启后需要在渲染器中设置update
         this.control.enableDamping = true;
     }
